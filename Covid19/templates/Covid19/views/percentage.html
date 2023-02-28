@@ -1,0 +1,20 @@
+{% block content %}
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li  {% if message.tags %} class=" {{ message.tags }} " {% endif %}> {{ message }} </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    <form method="POST" action="{% url 'percentage' %}">
+        {% csrf_token %}
+        <div class="fieldWrapper">
+            {{ form.slug.errors }}
+            {{ form.slug.label }}
+            {{ form.slug }}
+            <input type="submit">
+        </div>
+
+    </form>
+
+{% endblock %}
