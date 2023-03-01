@@ -6,7 +6,6 @@ from django.http import HttpResponseRedirect
 import requests
 import django.urls
 from django.conf import settings
-from django.shortcuts import render
 from rest_framework.views import APIView
 
 from . import models as covid_models
@@ -57,6 +56,9 @@ class ViewPercentage(django.views.generic.FormView):
     template_name = 'Covid19/views/percentage.html'
     pattern_name = 'percentage'
 
+    def get_success_url(self):
+        return django.urls.reverse_lazy(self.pattern_name)
+
     def form_valid(self, form):
         country_details = requests.get(f'{settings.API_LINK}/total/dayone/country/{form.cleaned_data["slug"]}').json()
         country_details = country_details[(len(country_details) - 1)]
@@ -64,10 +66,10 @@ class ViewPercentage(django.views.generic.FormView):
             percentage = (country_details['Deaths'] / country_details['Confirmed']) * 100
         except ZeroDivisionError:
             messages.error(self.request, 'Division by Zero!')
-            return render(self.request, template_name=self.template_name, context={'form': form}, status=400)
+            return super().form_valid(form)
 
         messages.success(self.request, f'{country_details["Country"]} Deaths to Confirmed is {percentage}%!')
-        return render(self.request, template_name=self.template_name, context={'form': form}, status=200)
+        return super().form_valid(form)
 
 
 class TopCountries(django.views.generic.FormView):
