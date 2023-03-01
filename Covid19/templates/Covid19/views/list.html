@@ -1,0 +1,8 @@
+<h1>Countries</h1>
+<ul>
+    {% for object in covid19apicountry_list %}
+    <li>{{ object.slug }} - {{ object.country }}</li>
+{% empty %}
+    <li>No imported countries yet.</li>
+{% endfor %}
+</ul>
