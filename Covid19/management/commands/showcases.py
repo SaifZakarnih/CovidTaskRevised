@@ -16,7 +16,6 @@ class Command(BaseCommand):
         if user := covid_models.User.objects.filter(username=options['user']).first():
             if countries_associations := covid_models.Covid19APICountryUserAssociation.objects.filter(user=user):
                 for current_country in countries_associations:
-                    print(current_country)
                     country_information = requests.get(f'{settings.API_LINK}/total/dayone/country/{current_country.country.slug}').json()
                     latest_entry = country_information[len(country_information) - 1]
                     preceding_entry = country_information[len(country_information) - 30]

@@ -1,10 +1,12 @@
 import django.views.generic
 import rest_framework.generics
 from django.contrib import messages
+from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponseRedirect
 import requests
 import django.urls
 from django.conf import settings
+from django.shortcuts import render
 from rest_framework.views import APIView
 
 from . import models as covid_models
@@ -13,16 +15,17 @@ from . import forms as covid_forms
 
 class ImportCountries(APIView):
 
+    create_check = False
+
     def post(self, request, *args, **kwargs):
         countries = requests.get(f'{settings.API_LINK}/countries').json()
-
         for current_country in countries:
-            covid_models.Covid19APICountry.objects.get_or_create(slug=current_country['Slug'], country=current_country['Country'], iso2=current_country['ISO2'])
+            queryset = covid_models.Covid19APICountry.objects.get_or_create(slug=current_country['Slug'], country=current_country['Country'], iso2=current_country['ISO2'])
+            self.create_check = True if queryset[1] else False
+        return rest_framework.views.Response(status=(201 if self.create_check else 409))
 
-        return rest_framework.views.Response('Countries imported successfully!', status=200)
 
-
-class GetCountries(rest_framework.generics.ListAPIView):
+class GetCountries(django.views.generic.ListView):
     template_name = 'Covid19/views/list.html'
 
     def get_queryset(self):
@@ -34,9 +37,13 @@ class UserCountryAssociation(django.views.generic.CreateView):
     fields = ['country']
     template_name = 'Covid19/views/subscribe.html'
 
-    def post(self, request, *args, **kwrags):
-        user = covid_models.User.objects.get(id=1)
-        country = covid_models.Covid19APICountry.objects.get(id=request.POST['country'])
+    def post(self, request, *args, **kwargs):
+        try:
+            user = covid_models.User.objects.get(id=1)
+            country = covid_models.Covid19APICountry.objects.get(id=request.POST['country'])
+        except ObjectDoesNotExist:
+            messages.error(self.request, 'Incorrect country!')
+            return HttpResponseRedirect(self.request.path_info)
         if covid_models.Covid19APICountryUserAssociation.objects.filter(user=user, country=country).exists():
             messages.error(self.request, f'{user} is already subscribed to {country}')
         else:
@@ -46,12 +53,9 @@ class UserCountryAssociation(django.views.generic.CreateView):
 
 
 class ViewPercentage(django.views.generic.FormView):
-    form_class = covid_forms.UserCountryAssociationAndViewPercentageForm
+    form_class = covid_forms.PercentageForm
     template_name = 'Covid19/views/percentage.html'
     pattern_name = 'percentage'
-
-    def get_success_url(self):
-        return django.urls.reverse_lazy(self.pattern_name)
 
     def form_valid(self, form):
         country_details = requests.get(f'{settings.API_LINK}/total/dayone/country/{form.cleaned_data["slug"]}').json()
@@ -60,10 +64,10 @@ class ViewPercentage(django.views.generic.FormView):
             percentage = (country_details['Deaths'] / country_details['Confirmed']) * 100
         except ZeroDivisionError:
             messages.error(self.request, 'Division by Zero!')
-            return super().form_valid(form)
+            return render(self.request, template_name=self.template_name, context={'form': form}, status=400)
 
         messages.success(self.request, f'{country_details["Country"]} Deaths to Confirmed is {percentage}%!')
-        return super().form_valid(form)
+        return render(self.request, template_name=self.template_name, context={'form': form}, status=200)
 
 
 class TopCountries(django.views.generic.FormView):

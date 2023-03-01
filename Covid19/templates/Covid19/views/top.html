@@ -9,9 +9,7 @@
     <form method="POST" action="{% url 'top' %}">
         {% csrf_token %}
         <div class="fieldWrapper">
-            {{ form.case.errors }}
-            {{ form.case.label }}
-            {{ form.case }}
+            {{ form.as_p }}
             <input type="submit">
         </div>
 

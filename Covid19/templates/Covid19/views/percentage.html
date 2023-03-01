@@ -9,9 +9,7 @@
     <form method="POST" action="{% url 'percentage' %}">
         {% csrf_token %}
         <div class="fieldWrapper">
-            {{ form.slug.errors }}
-            {{ form.slug.label }}
-            {{ form.slug }}
+            {{ form.as_p }}
             <input type="submit">
         </div>
 
