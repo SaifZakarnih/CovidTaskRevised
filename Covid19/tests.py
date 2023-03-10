@@ -1,5 +1,3 @@
-import pdb
-
 import django.test
 from . import models as covid_models
 from . import forms as covid_forms
@@ -9,7 +7,7 @@ class ImportTestCase(django.test.TestCase):
 
     def test_correct_scenario(self):
         response = self.client.post('/api/v2/import-countries/')
-        self.assertEquals(response.status_code, 409)
+        self.assertEquals(response.status_code, 201)
 
     def test_incorrect_url(self):
         response = self.client.post('/api/v2/import-count/')
@@ -25,6 +23,7 @@ class PercentageTestCase(django.test.TestCase):
     invalid_slug = 'south'
 
     def test_form_valid(self):
+        self.client.post('/api/v2/import-countries/')
         form = covid_forms.PercentageForm(data={'slug': self.slug})
         self.assertTrue(form.is_valid())
 
@@ -47,28 +46,25 @@ class PercentageTestCase(django.test.TestCase):
 
 class SubscribeTestCase(django.test.TestCase):
 
-    username = 'testuesr'
-    password = '123'
-    email = 'test@user.com'
     existing_slug = 'south-africa'
     new_slug = 'united-states'
 
-    def setUp(self):
-        self.user = covid_models.User.objects.create(username=self.username, password=self.password, email=self.email)
-
     def test_existing_id(self):
+        self.client.post('/api/v2/import-countries/')
+        covid_models.User.objects.create(username='test', password='123', email='test@gmail.com')
+        covid_models.Covid19APICountryUserAssociation.objects.create(user_id=1, country=covid_models.Covid19APICountry.objects.get(slug=self.existing_slug))
         country_id = covid_models.Covid19APICountry.objects.filter(slug=self.existing_slug).values_list('id', flat=True)
-        response = self.client.post('/api/v2/subscribe/', data={'user_id': self.user.pk, 'country': country_id})
+        response = self.client.post('/api/v2/subscribe/', data={'country': country_id})
         self.assertEquals(response.status_code, 302)
 
     def test_new_id(self):
         country_id = covid_models.Covid19APICountry.objects.filter(slug=self.new_slug).values_list('id', flat=True)
-        response = self.client.post('/api/v2/subscribe/', data={'user_id': self.user.pk, 'country': country_id})
+        response = self.client.post('/api/v2/subscribe/', data={ 'country': country_id})
         self.assertEquals(response.status_code, 302)
 
     def test_wrong_id(self):
         country_id = 500
-        response = self.client.post('/api/v2/subscribe/', data={'user_id': self.user.pk, 'country': country_id})
+        response = self.client.post('/api/v2/subscribe/', data={'country': country_id})
         self.assertEquals(response.status_code, 302)
 
 

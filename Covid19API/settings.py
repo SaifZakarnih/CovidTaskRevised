@@ -45,7 +45,7 @@ INSTALLED_APPS = [
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'template1',
+        'NAME': 'covid19',
         'USER': 'postgres',
         'PASSWORD': '',
         'HOST': 'localhost',
